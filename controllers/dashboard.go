@@ -8,30 +8,16 @@ type DashboardController struct {
 	*BaseController
 }
 
-func (c *DashboardController) Dashboard(k *knot.WebContext) interface{} {
+func (c *DashboardController) ExampleHtml(k *knot.WebContext) interface{} {
 	k.Config.NoLog = true 
 	k.Config.OutputType = knot.OutputTemplate
 
 	return nil
 } 
 
-func (c *DashboardController) Get(k *knot.WebContext) interface{} {
+func (c *DashboardController) ExampleJson(k *knot.WebContext) interface{} {
 	k.Config.NoLog = true 
 	k.Config.OutputType = knot.OutputJson
-
-	return nil
-} 
-
-func (c *DashboardController) Post(k *knot.WebContext) interface{} {
-	k.Config.NoLog = true 
-	k.Config.OutputType = knot.OutputJson
-
-	return nil
-} 
-
-func (c *DashboardController) Test(k *knot.WebContext) interface{} {
-	k.Config.NoLog = true 
-	k.Config.OutputType = knot.OutputTemplate
 
 	return nil
 } 

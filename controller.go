@@ -3,10 +3,13 @@ package main
 import (
 	"fmt"
 	"os"
+	"path/filepath"
+	"pribadi/fileoperation"
 	"strings"
 )
 
 var (
+	directoryController  = "./controllers"
 	separation           = "\n\n"
 	controllerNameFormat = "%sController"
 	nameController       = ""
@@ -17,63 +20,65 @@ var (
 	}
 )
 
-type Config struct {
-	Plain    bool
-	Rest     bool
-	FuncName string
+type controllergenerator struct {
+	path     string
+	filename string
+	file     *os.File
 }
 
-func setConfig(plain, rest bool, funcName string) *Config {
-	return &Config{Plain: plain, Rest: rest, FuncName: funcName}
+func (c *controllergenerator) init(filename string) *controllergenerator {
+	return &controllergenerator{path: filepath.Join(directoryController, filename), filename: filename}
 }
 
-func (c *Config) isFuncNameValid() bool {
-	return c.FuncName != "not set" && c.FuncName != ""
-}
+func (c *controllergenerator) make() (errFix error) {
+	var flatErr error
+	var err error
 
-func (c *Config) tranformFuncName() map[string]string {
-	funcNameTypeArr := make(map[string]string, 0)
-	if c.isFuncNameValid() {
-		funcNameArr := strings.Split(c.FuncName, "-")
-		for _, v := range funcNameArr {
-			funcType := strings.Split(v, ":")
-			if len(funcType) > 0 {
-				if _, ok := funcNameTypeArr[funcType[0]]; !ok {
-					funcNameTypeArr[funcType[0]] = ""
-				}
+	defer func() {
+		errFix = flatErr
+	}()
 
-				funcNameTypeArr[funcType[0]] = funcType[1]
-			} else {
-				if _, ok := funcNameTypeArr[v]; !ok {
-					funcNameTypeArr[v] = defaultType
-				}
-			}
+	//make file empty
+	if fileconfig.IsFileExist(c.path) {
+		err = os.Remove(c.path)
+		if err != nil {
+			flatErr = err
+			return
 		}
 	}
 
-	return funcNameTypeArr
+	c.file, err = os.OpenFile(c.path, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0660)
+	if err != nil {
+		flatErr = err
+		return
+	}
+
+	defer c.file.Close()
+	c.render()
+
+	return nil
 }
 
-func buildTemplateController(file *os.File, filename string, conf *Config) {
-	nameController = fmt.Sprintf(controllerNameFormat, strings.Title(filename))
+func (c *controllergenerator) render() {
+	nameController = fmt.Sprintf(controllerNameFormat, strings.Title(c.filename))
 
-	file.WriteString("package controllers" + separation)
-	file.WriteString("import (\n\tknot \"github.com/eaciit/knot/knot.v1\"\n)" + separation)
-	file.WriteString("type " + nameController + " struct {\n\t*BaseController\n}" + separation)
+	c.file.WriteString("package controllers" + separation)
+	c.file.WriteString("import (\n\tknot \"github.com/eaciit/knot/knot.v1\"\n)" + separation)
+	c.file.WriteString("type " + nameController + " struct {\n\t*BaseController\n}" + separation)
 
-	if !conf.Plain {
+	if conf.Plain {
 		funcNameTypeArr := conf.tranformFuncName()
 		if len(funcNameTypeArr) > 0 {
 			for name, typeFunc := range funcNameTypeArr {
-				buildFuncController(file, name, typeFunc)
+				buildFuncController(c.file, name, typeFunc)
 			}
 		} else if !conf.Rest {
-			buildExampleFuncController(file)
+			buildExampleFuncController(c.file)
 		}
 	}
 
 	if conf.Rest {
-		buildRestFuncController(file)
+		buildRestFuncController(c.file)
 	}
 }
 
